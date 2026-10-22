@@ -26,6 +26,9 @@ const videoPause = document.querySelector('#video-pause');
 const videoStatus = document.querySelector('#video-status');
 const videoCaption = videoPlay.querySelector('.video-caption');
 const originalVideoCaption = videoCaption.innerHTML;
+// Use page controls so Safari does not cover the video with its native panel.
+video.controls = false;
+video.playsInline = true;
 function showVideoStatus(message = '') {
   videoStatus.textContent = message;
   videoStatus.hidden = !message;
@@ -41,14 +44,14 @@ function showVideoStatus(message = '') {
 }
 function setVideoState() {
   videoPlay.hidden = !video.paused;
-  videoPause.hidden = true;
+  videoPause.hidden = video.paused || video.ended;
   videoCaption.innerHTML = originalVideoCaption;
   videoPlay.removeAttribute('aria-busy');
 }
 async function playVideo() {
   showVideoStatus();
   video.muted = true;
-  video.controls = true;
+  video.controls = false;
   videoCaption.textContent = 'Загрузка видео…';
   videoPlay.setAttribute('aria-busy', 'true');
   try {
@@ -63,6 +66,7 @@ async function playVideo() {
   }
 }
 videoPlay.addEventListener('click', playVideo);
+videoPause.addEventListener('click', () => video.pause());
 video.addEventListener('playing', () => { setVideoState(); showVideoStatus(); });
 video.addEventListener('pause', setVideoState);
 video.addEventListener('error', () => {

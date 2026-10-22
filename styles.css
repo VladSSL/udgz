@@ -17,3 +17,7 @@
     object-position: center;
   }
 }
+
+/* Keep playback controls below the picture, including on iPhone. */
+.video-actions{display:flex;justify-content:flex-end;align-items:center;min-height:44px;margin-top:8px}
+.video-actions .video-pause{position:static;display:inline-flex;gap:7px;width:auto;height:auto;min-height:40px;padding:8px 14px;border-radius:999px;background:var(--mist);font-size:13px}
