@@ -13,8 +13,8 @@
   <meta property="og:image" content="https://udgz-plasma-hardening.mechanic-tea-7150.chatgpt.site/assets/social.jpg">
   <meta property="og:url" content="https://udgz-plasma-hardening.mechanic-tea-7150.chatgpt.site/">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=inline-video-3">
-  <script src="app.js?v=inline-video-3" defer></script>
+  <link rel="stylesheet" href="styles.css?v=kinescope-20261023">
+  <script src="app.js?v=kinescope-20261023" defer></script>
   <!-- Яндекс Метрика: укажите METRIKA_ID в app.js. Счётчик подключается после заполнения ID. -->
 </head>
 <body>
@@ -52,11 +52,18 @@
 
   <section id="technology" class="technology section wrap">
     <div class="section-intro reveal"><div><p class="eyebrow muted">Технология в действии</p><h2>Плазма работает.<br><span class="muted">Поверхность крепнет.</span></h2></div><p class="intro-copy">Горелка локально нагревает рабочую зону детали. Закалка проходит вручную, без помещения всей детали в печь.</p></div>
-    <div class="video-stage reveal">
-      <video id="process-video" poster="assets/process-poster-20261022.jpg" controls playsinline loop muted preload="metadata" aria-label="Видео процесса плазменной поверхностной закалки УДГЗ"><source src="assets/hardening-web.mp4" type="video/mp4">Ваш браузер не поддерживает видео. <a href="assets/hardening-web.mp4">Скачать видео</a></video>
-      <button class="video-cover" id="video-play" type="button" aria-label="Воспроизвести видео закалки"><span class="play-circle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 11 7-11 7z"/></svg></span><span class="video-caption">Посмотрите, как это работает <span>11 секунд · реальный процесс закалки</span></span></button>
+    <div class="video-stage reveal" id="video-stage">
+      <video id="process-video" poster="assets/process-poster-20261022.jpg" controls playsinline loop muted preload="metadata" aria-label="Как это работает"><source src="assets/hardening-web.mp4" type="video/mp4">Ваш браузер не поддерживает видео. <a href="assets/hardening-web.mp4">Скачать видео</a></video>
+      <div id="kinescope-host" hidden><div id="kinescope-player"></div></div>
+      <button class="video-cover" id="video-play" type="button" aria-label="Воспроизвести: Как это работает"><span class="play-circle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 11 7-11 7z"/></svg></span><span class="video-caption">Как это работает <span>11 секунд</span></span></button>
     </div>
-    <div class="video-actions"><button type="button" id="video-pause" class="video-pause" aria-label="Приостановить видео" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4v12M14 4v12"/></svg><span>Пауза</span></button></div>
+    <div class="video-actions">
+      <div class="video-choices" role="group" aria-label="Выбрать видео">
+        <button type="button" class="video-choice is-active" data-video="local" aria-pressed="true" aria-controls="video-stage">Как это работает</button>
+        <button type="button" class="video-choice" data-video="kinescope" aria-pressed="false" aria-controls="video-stage">Реальная закалка</button>
+      </div>
+      <div class="video-transport"><button type="button" id="video-pause" class="video-pause" aria-label="Приостановить видео" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4v12M14 4v12"/></svg><span>Пауза</span></button></div>
+    </div>
     <p id="video-status" role="status" hidden></p>
     <div class="principles reveal">
       <article><span class="index">01</span><h3>Нужный участок.</h3><p>Посадочные места, зубья, направляющие. Обрабатывайте зоны, которые работают на износ.</p></article>
