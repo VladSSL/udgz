@@ -27,24 +27,24 @@ const videoPause = document.querySelector('#video-pause');
 const videoStatus = document.querySelector('#video-status');
 const kineHost = document.querySelector('#kinescope-host');
 const choices = [...document.querySelectorAll('[data-video]')];
-const kineUrl = 'https://kinescope.io/wsmPVtdpqGDFfAa5udezeL';
+const kineVideos = {
+  kinescope: {url:'https://kinescope.io/wsmPVtdpqGDFfAa5udezeL', title:'Реальная закалка', id:'kinescope-player', host:document.querySelector('#kinescope-hardening-host')},
+  models: {url:'https://kinescope.io/iP1LQpPioPANiH51wBQ3Pv', title:'Модельный ряд', id:'kinescope-models-player', host:document.querySelector('#kinescope-models-host')}
+};
 const videoCaption = videoPlay.querySelector('.video-caption');
 const originalVideoCaption = videoCaption.innerHTML;
 let selectedVideo = 'local';
 let requestVersion = 0;
-let kinePlayer = null;
-let kinePromise = null;
-let kinePlaying = false;
+let factoryPromise = null;
 let playWhenVisible = false;
 video.controls = false;
 video.playsInline = true;
-
 function showVideoStatus(message = '') {
   videoStatus.textContent = message;
   videoStatus.hidden = !message;
   if (message) {
     const link = document.createElement('a');
-    link.href = selectedVideo === 'kinescope' ? kineUrl : video.querySelector('source').src;
+    link.href = kineVideos[selectedVideo]?.url || video.querySelector('source').src;
     link.textContent = ' Открыть видео';
     link.className = 'text-link';
     link.target = '_blank';
@@ -53,59 +53,64 @@ function showVideoStatus(message = '') {
   }
 }
 function setVideoState() {
-  const external = selectedVideo === 'kinescope';
+  const external = selectedVideo !== 'local';
   videoPlay.hidden = external || (!video.paused && !video.ended);
-  videoPause.hidden = external ? !kinePlaying : (video.paused || video.ended);
+  videoPause.hidden = external ? !kineVideos[selectedVideo].playing : (video.paused || video.ended);
   videoCaption.innerHTML = originalVideoCaption;
   videoPlay.removeAttribute('aria-busy');
 }
-function loadKinescope() {
-  if (kinePromise) return kinePromise;
-  kinePromise = new Promise((resolve, reject) => {
+function loadKinescopeFactory() {
+  if (factoryPromise) return factoryPromise;
+  factoryPromise = new Promise((resolve, reject) => {
     const script = document.createElement('script');
     const timeout = setTimeout(() => reject(new Error('Kinescope timeout')), 20000);
     script.src = 'https://player.kinescope.io/latest/iframe.player.js';
     script.async = true;
-    script.onerror = () => { clearTimeout(timeout); script.remove(); kinePromise = null; reject(new Error('Kinescope unavailable')); };
-    window.onKinescopeIframeAPIReady = factory => {
-      factory.create('kinescope-player', {
-        url: kineUrl,
-        size: {width:'100%', height:'100%'},
-        behavior: {autoPlay:false, muted:true, playsInline:true, localStorage:{time:false}},
-        ui: {language:'ru', controls:true, mainPlayButton:true}
-      }).then(player => {
-        clearTimeout(timeout);
-        kinePlayer = player;
-        player.on(player.Events.Playing, () => {
-          if (selectedVideo !== 'kinescope' || document.hidden) {
-            player.pause().catch(() => {});
-            return;
-          }
-          kinePlaying = true;
-          setVideoState();
-          showVideoStatus();
-          track('video_play', {video:'Реальная закалка'});
-        });
-        const stopped = () => { kinePlaying = false; if (selectedVideo === 'kinescope') setVideoState(); };
-        player.on(player.Events.Pause, stopped);
-        player.on(player.Events.Ended, stopped);
-        player.on(player.Events.Error, () => {
-          stopped();
-          if (selectedVideo === 'kinescope') showVideoStatus('Не удалось загрузить видео. Попробуйте ещё раз или откройте ролик отдельно.');
-        });
-        resolve(player);
-      }).catch(error => { clearTimeout(timeout); reject(error); });
-    };
+    script.onerror = () => { clearTimeout(timeout); script.remove(); factoryPromise = null; reject(new Error('Kinescope unavailable')); };
+    window.onKinescopeIframeAPIReady = factory => { clearTimeout(timeout); resolve(factory); };
     document.head.append(script);
   });
-  return kinePromise;
+  return factoryPromise;
+}
+function loadKinescope(key) {
+  const item = kineVideos[key];
+  if (item.promise) return item.promise;
+  item.promise = loadKinescopeFactory().then(factory => factory.create(item.id, {
+    url: item.url,
+    size: {width:'100%', height:'100%'},
+    behavior: {autoPlay:false, muted:true, playsInline:true, localStorage:{time:false}},
+    ui: {language:'ru', controls:true, mainPlayButton:true}
+  })).then(player => {
+    item.player = player;
+    player.on(player.Events.Playing, () => {
+      if (selectedVideo !== key || document.hidden) {
+        player.pause().catch(() => {});
+        return;
+      }
+      item.playing = true;
+      setVideoState();
+      showVideoStatus();
+      track('video_play', {video:item.title});
+    });
+    const stopped = () => { item.playing = false; if (selectedVideo === key) setVideoState(); };
+    player.on(player.Events.Pause, stopped);
+    player.on(player.Events.Ended, stopped);
+    player.on(player.Events.Error, () => {
+      stopped();
+      if (selectedVideo === key) showVideoStatus('Не удалось загрузить видео. Попробуйте ещё раз или откройте ролик отдельно.');
+    });
+    return player;
+  }).catch(error => { item.promise = null; throw error; });
+  return item.promise;
 }
 function pauseVideo() {
   requestVersion += 1;
   playWhenVisible = false;
   video.pause();
-  kinePlaying = false;
-  if (kinePlayer) kinePlayer.pause().catch(() => {});
+  Object.values(kineVideos).forEach(item => {
+    item.playing = false;
+    if (item.player) item.player.pause().catch(() => {});
+  });
   setVideoState();
 }
 async function playVideo() {
@@ -113,15 +118,12 @@ async function playVideo() {
   const selected = selectedVideo;
   showVideoStatus();
   try {
-    if (selected === 'kinescope') {
+    if (selected !== 'local') {
       showVideoStatus('Загрузка видео…');
-      const player = await loadKinescope();
+      const player = await loadKinescope(selected);
       if (version !== requestVersion || selectedVideo !== selected) return;
       await player.play();
-      if (version !== requestVersion || selectedVideo !== selected) {
-        await player.pause();
-        return;
-      }
+      if (version !== requestVersion && selectedVideo !== selected) await player.pause();
     } else {
       video.muted = true;
       videoCaption.textContent = 'Загрузка видео…';
@@ -146,16 +148,17 @@ async function selectVideo(button) {
     choice.classList.toggle('is-active', active);
     choice.setAttribute('aria-pressed', String(active));
   });
-  const external = next === 'kinescope';
+  const external = next !== 'local';
   video.hidden = external;
   kineHost.hidden = !external;
+  Object.entries(kineVideos).forEach(([key,item]) => { item.host.hidden = key !== next; });
   videoStage.style.setProperty('--video-ratio', external ? '16 / 9' : '1680 / 720');
   setVideoState();
   track('video_select', {video:button.textContent});
   if (!external) video.currentTime = 0;
   const resetVersion = requestVersion;
-  if (external && kinePlayer) {
-    try { await kinePlayer.seekTo(0); } catch (_) {}
+  if (external && kineVideos[next].player) {
+    try { await kineVideos[next].player.seekTo(0); } catch (_) {}
   }
   if (resetVersion === requestVersion && selectedVideo === next) playVideo();
 }
