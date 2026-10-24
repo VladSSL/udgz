@@ -105,7 +105,14 @@ function setVideoState() {
   const item = kineVideos[selectedVideo];
   videoPoster.hidden = selectedVideo !== 'overview' || !!item.ready;
   videoPlay.hidden = selectedVideo !== 'overview' || !!item.ready;
-  videoPause.hidden = !item.playing;
+  const playing = !!(item.playing || item.playRequested);
+  videoPause.hidden = false;
+  videoPause.querySelector('[data-playback-label]').textContent = playing ? 'Пауза' : 'Плей';
+  videoPause.querySelector('[data-play-icon]').setAttribute('visibility', playing ? 'hidden' : 'visible');
+  videoPause.querySelector('[data-pause-icon]').setAttribute('visibility', playing ? 'visible' : 'hidden');
+  videoPause.setAttribute('aria-label', playing ? 'Приостановить видео' : 'Воспроизвести видео');
+  videoPause.title = playing ? 'Приостановить видео' : 'Воспроизвести видео';
+  videoPause.setAttribute('aria-busy', String(!!item.playRequested && !item.playing));
   updateVideoSound();
   videoCaption.innerHTML = originalVideoCaption;
   videoPlay.removeAttribute('aria-busy');
@@ -157,7 +164,7 @@ function loadKinescope(key) {
       showVideoStatus();
       track('video_play', {video:item.title});
     });
-    const stopped = () => { item.playing = false; if (selectedVideo === key) setVideoState(); };
+    const stopped = () => { item.playing = false; item.playRequested = false; if (selectedVideo === key) setVideoState(); };
     player.on(player.Events.Pause, stopped);
     player.on(player.Events.Ended, stopped);
     player.on(player.Events.Error, () => {
@@ -174,6 +181,7 @@ function pauseVideo() {
   playWhenVisible = false;
   Object.values(kineVideos).forEach(item => {
     item.playing = false;
+    item.playRequested = false;
     if (item.player) item.player.pause().catch(() => {});
   });
   setVideoState();
@@ -183,6 +191,8 @@ async function playVideo() {
   const selected = selectedVideo;
   const item = kineVideos[selected];
   item.lastPlayRequest = version;
+  item.playRequested = true;
+  setVideoState();
   kineHost.hidden = false;
   showVideoStatus('Загрузка видео…');
   try {
@@ -194,7 +204,17 @@ async function playVideo() {
     if (version !== requestVersion) return;
     setVideoState();
     if (error.name !== 'AbortError') showVideoStatus('Не удалось запустить видео. Попробуйте ещё раз или откройте ролик отдельно.');
+  } finally {
+    if (item.lastPlayRequest === version) {
+      item.playRequested = false;
+      if (selectedVideo === selected) setVideoState();
+    }
   }
+}
+function toggleVideoPlayback() {
+  const item = kineVideos[selectedVideo];
+  if (item.playing || item.playRequested) pauseVideo();
+  else return playVideo();
 }
 async function selectVideo(button) {
   const next = button.dataset.video;
@@ -219,7 +239,7 @@ async function selectVideo(button) {
 }
 videoPlay.addEventListener('click', playVideo);
 choices.forEach(button => button.addEventListener('click', () => selectVideo(button)));
-videoPause.addEventListener('click', pauseVideo);
+videoPause.addEventListener('click', toggleVideoPlayback);
 videoSound.addEventListener('click', toggleVideoSound);
 document.querySelector('.watch-link').addEventListener('click', () => {
   playWhenVisible = true;

@@ -40,3 +40,7 @@
 .video-actions .video-sound{align-items:center}
 .video-actions .video-sound svg{fill:none;stroke-width:1.6}
 .video-actions .video-sound:hover{background:#e5e5ea}
+
+/* Keep the shared play/pause control visible and stable in width. */
+.video-actions .video-playback{min-width:98px;justify-content:center}
+.video-playback [data-play-icon]{fill:currentColor;stroke:none}
