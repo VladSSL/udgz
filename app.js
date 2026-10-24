@@ -56,7 +56,7 @@ function updateVideoSound() {
   const item = kineVideos[selectedVideo];
   const enabled = item.muted === false && item.volume > 0;
   const label = enabled ? 'Выключить звук' : 'Включить звук';
-  videoSound.hidden = !item.ready;
+  videoSound.hidden = selectedVideo === 'overview' || !item.ready;
   videoSound.disabled = !!item.soundBusy;
   videoSound.setAttribute('aria-pressed', String(enabled));
   videoSound.setAttribute('aria-label', label);
