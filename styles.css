@@ -34,3 +34,9 @@
 .video-choice.is-active{background:rgb(229,229,234);color:var(--ink)}
 .video-transport{display:flex;justify-content:flex-end;flex:0 0 85px;min-height:44px}
 @media(max-width:760px){.video-actions{flex-wrap:wrap;gap:8px}.video-choice{padding:10px 12px;font-size:12px}.video-transport{margin-left:auto}.video-actions .video-pause{min-height:44px}#video-stage video{height:100%}}
+
+/* Shared video sound and pause controls. */
+.video-transport{flex:0 0 auto;gap:8px;align-items:center}
+.video-actions .video-sound{align-items:center}
+.video-actions .video-sound svg{fill:none;stroke-width:1.6}
+.video-actions .video-sound:hover{background:#e5e5ea}

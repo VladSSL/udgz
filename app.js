@@ -24,6 +24,7 @@ const videoStage = document.querySelector('#video-stage');
 const videoPoster = document.querySelector('#video-poster');
 const videoPlay = document.querySelector('#video-play');
 const videoPause = document.querySelector('#video-pause');
+const videoSound = document.querySelector('#video-sound');
 const videoStatus = document.querySelector('#video-status');
 const kineHost = document.querySelector('#kinescope-host');
 const choices = [...document.querySelectorAll('[data-video]')];
@@ -51,11 +52,61 @@ function showVideoStatus(message = '') {
     videoStatus.append(link);
   }
 }
+function updateVideoSound() {
+  const item = kineVideos[selectedVideo];
+  const enabled = item.muted === false && item.volume > 0;
+  const label = enabled ? 'Выключить звук' : 'Включить звук';
+  videoSound.hidden = !item.ready;
+  videoSound.disabled = !!item.soundBusy;
+  videoSound.setAttribute('aria-pressed', String(enabled));
+  videoSound.setAttribute('aria-label', label);
+  videoSound.title = label;
+  videoSound.querySelector('[data-sound-on]').setAttribute('visibility', enabled ? 'visible' : 'hidden');
+  videoSound.querySelector('[data-sound-on]').removeAttribute('hidden');
+  videoSound.querySelector('[data-sound-off]').setAttribute('visibility', enabled ? 'hidden' : 'visible');
+}
+async function refreshVideoSound(key) {
+  const item = kineVideos[key];
+  if (!item.player) return;
+  const revision = item.audioRevision || 0;
+  try {
+    const [muted, volume] = await Promise.all([item.player.isMuted(), item.player.getVolume()]);
+    if (revision !== (item.audioRevision || 0)) return;
+    item.muted = muted;
+    item.volume = volume;
+    if (volume > 0) item.lastAudibleVolume = volume;
+    if (selectedVideo === key) updateVideoSound();
+  } catch (_) {}
+}
+async function toggleVideoSound() {
+  const key = selectedVideo;
+  const item = kineVideos[key];
+  if (!item.player || item.soundBusy) return;
+  item.soundBusy = true;
+  updateVideoSound();
+  try {
+    const [muted, volume] = await Promise.all([item.player.isMuted(), item.player.getVolume()]);
+    if (selectedVideo !== key) return;
+    if (!muted && volume > 0) {
+      await item.player.mute();
+    } else {
+      if (volume === 0) await item.player.setVolume(item.lastAudibleVolume || 1);
+      await item.player.unmute();
+    }
+    await refreshVideoSound(key);
+  } catch (_) {
+    if (selectedVideo === key) showVideoStatus('Не удалось переключить звук. Попробуйте ещё раз.');
+  } finally {
+    item.soundBusy = false;
+    if (selectedVideo === key) updateVideoSound();
+  }
+}
 function setVideoState() {
   const item = kineVideos[selectedVideo];
   videoPoster.hidden = selectedVideo !== 'overview' || !!item.ready;
   videoPlay.hidden = selectedVideo !== 'overview' || !!item.ready;
   videoPause.hidden = !item.playing;
+  updateVideoSound();
   videoCaption.innerHTML = originalVideoCaption;
   videoPlay.removeAttribute('aria-busy');
 }
@@ -82,13 +133,26 @@ function loadKinescope(key) {
     ui: {language:'ru', controls:true, mainPlayButton:true}
   })).then(player => {
     item.player = player;
+    item.muted = true;
+    item.volume = 1;
     item.ready = true;
+    player.on(player.Events.VolumeChange, ({data}) => {
+      item.audioRevision = (item.audioRevision || 0) + 1;
+      if (typeof data?.muted === 'boolean') item.muted = data.muted;
+      if (typeof data?.volume === 'number') {
+        item.volume = data.volume;
+        if (data.volume > 0) item.lastAudibleVolume = data.volume;
+      }
+      if (selectedVideo === key) updateVideoSound();
+    });
+    refreshVideoSound(key);
     player.on(player.Events.Playing, () => {
       if (selectedVideo !== key || document.hidden) {
         player.pause().catch(() => {});
         return;
       }
       item.playing = true;
+      refreshVideoSound(key);
       setVideoState();
       showVideoStatus();
       track('video_play', {video:item.title});
@@ -156,6 +220,7 @@ async function selectVideo(button) {
 videoPlay.addEventListener('click', playVideo);
 choices.forEach(button => button.addEventListener('click', () => selectVideo(button)));
 videoPause.addEventListener('click', pauseVideo);
+videoSound.addEventListener('click', toggleVideoSound);
 document.querySelector('.watch-link').addEventListener('click', () => {
   playWhenVisible = true;
   const box = videoStage.getBoundingClientRect();
