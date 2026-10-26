@@ -78,6 +78,20 @@ async function refreshVideoSound(key) {
     if (selectedVideo === key) updateVideoSound();
   } catch (_) {}
 }
+function videoCommand(command, timeout = 8000) {
+  let timer;
+  return Promise.race([
+    command,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Video command timeout')), timeout);
+    })
+  ]).finally(() => clearTimeout(timer));
+}
+function playbackNeedsGesture(error) {
+  return /notallowed|not allowed|user (activation|gesture)|not triggered|permission|autoplay/i.test(
+    String(error?.name || '') + ' ' + String(error?.message || error || '')
+  );
+}
 async function toggleVideoSound() {
   const key = selectedVideo;
   const item = kineVideos[key];
@@ -101,14 +115,27 @@ async function toggleVideoSound() {
     // Request continued playback in the same user gesture, without seeking.
     if (wasPlaying && stillCurrent()) commands.push(player.play());
     updateVideoSound();
-    await Promise.all(commands);
+    await videoCommand(Promise.all(commands));
     if (wasPlaying && stillCurrent()) {
-      const paused = await player.isPaused();
-      if (paused && stillCurrent()) await player.play();
+      const paused = await videoCommand(player.isPaused());
+      if (paused && stillCurrent()) await videoCommand(player.play());
     }
     await refreshVideoSound(key);
-  } catch (_) {
-    if (stillCurrent()) showVideoStatus('Не удалось переключить звук. Попробуйте ещё раз.');
+  } catch (error) {
+    if (!stillCurrent()) return;
+    if (enableSound && wasPlaying && playbackNeedsGesture(error)) {
+      try {
+        await videoCommand(player.mute());
+        if (!stillCurrent()) return;
+        await videoCommand(player.play());
+        if (stillCurrent()) showVideoStatus('Чтобы включить звук, нажмите значок динамика внутри видео.');
+      } catch (_) {
+        if (stillCurrent()) showVideoStatus('Для продолжения нажмите ▶ непосредственно на видео.');
+      }
+    } else {
+      showVideoStatus('Не удалось переключить звук. Используйте значок динамика внутри видео.');
+    }
+    await refreshVideoSound(key);
   } finally {
     item.soundBusy = false;
     if (selectedVideo === key) updateVideoSound();
@@ -209,14 +236,28 @@ async function playVideo() {
   kineHost.hidden = false;
   showVideoStatus('Загрузка видео…');
   try {
-    const player = await loadKinescope(selected);
-    if (version !== requestVersion || selectedVideo !== selected) return;
-    await player.play();
+    // A ready player's play command must be sent directly during the click.
+    let player = item.player;
+    let playCommand;
+    if (player) {
+      playCommand = player.play();
+    } else {
+      player = await loadKinescope(selected);
+      if (version !== requestVersion || selectedVideo !== selected) return;
+      playCommand = player.play();
+    }
+    await videoCommand(playCommand);
     if (version !== requestVersion && item.lastPlayRequest === version) await player.pause();
   } catch (error) {
     if (version !== requestVersion) return;
+    item.playRequested = false;
+    item.playing = false;
     setVideoState();
-    if (error.name !== 'AbortError') showVideoStatus('Не удалось запустить видео. Попробуйте ещё раз или откройте ролик отдельно.');
+    if (error?.name !== 'AbortError') {
+      showVideoStatus(item.ready
+        ? 'Для запуска нажмите ▶ непосредственно на видео.'
+        : 'Не удалось загрузить плеер. Попробуйте ещё раз или откройте ролик отдельно.');
+    }
   } finally {
     if (item.lastPlayRequest === version) {
       item.playRequested = false;
