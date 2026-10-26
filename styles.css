@@ -56,3 +56,9 @@
 .application-gallery-controls .gallery-arrow svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .gallery-count{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
 @media(prefers-reduced-motion:reduce){.application-gallery .application-photo,.application-gallery-controls .gallery-arrow{transition:none}}
+
+/* Smooth details panels with a reversible plus/minus icon. */
+.motion-details.is-animating{overflow:hidden;box-sizing:border-box}
+.motion-details>summary .plus::after{transform:rotate(90deg);opacity:1;transition:transform .3s ease,opacity .3s ease}
+.motion-details.is-expanded>summary .plus::after{transform:rotate(0deg);opacity:0}
+@media(prefers-reduced-motion:reduce){.motion-details>summary .plus::after{transition:none}}

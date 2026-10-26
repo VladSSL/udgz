@@ -353,7 +353,56 @@ if ('IntersectionObserver' in window) {
   }, {threshold:0});
   videoObserver.observe(videoStage);
 }
-document.querySelectorAll('a[href="#comparison"]').forEach(a => a.addEventListener('click', () => { document.querySelector('#comparison').open = true; }));
+
+// Smooth opening and closing for the comparison table and FAQ.
+const accordionControllers = new Map();
+document.querySelectorAll('#comparison, .faq details').forEach(details => {
+  const summary = details.querySelector('summary');
+  const content = summary.nextElementSibling;
+  let animation = null;
+  let expanded = details.open;
+  details.classList.add('motion-details');
+  details.classList.toggle('is-expanded', expanded);
+  function setOpen(open) {
+    expanded = open;
+    const startHeight = details.getBoundingClientRect().height;
+    if (animation) { animation.cancel(); animation = null; }
+    details.classList.toggle('is-expanded', open);
+    if (reducedMotion.matches || !details.animate) {
+      details.open = open;
+      details.classList.remove('is-animating');
+      content.inert = !open;
+      return;
+    }
+    details.open = true;
+    content.inert = !open;
+    const endHeight = open ? details.getBoundingClientRect().height :
+      summary.getBoundingClientRect().height + parseFloat(getComputedStyle(details).borderTopWidth) +
+      parseFloat(getComputedStyle(details).borderBottomWidth);
+    details.classList.add('is-animating');
+    const current = details.animate(
+      [{height:startHeight + 'px'}, {height:endHeight + 'px'}],
+      {duration:360, easing:'cubic-bezier(.22,1,.36,1)', fill:'both'}
+    );
+    animation = current;
+    current.onfinish = () => {
+      if (animation !== current) return;
+      details.open = expanded;
+      details.classList.remove('is-animating');
+      animation = null;
+      current.cancel();
+    };
+  }
+  summary.addEventListener('click', event => {
+    event.preventDefault();
+    setOpen(!expanded);
+  });
+  accordionControllers.set(details, {setOpen});
+});
+
+document.querySelectorAll('a[href="#comparison"]').forEach(a => a.addEventListener('click', () => {
+  accordionControllers.get(document.querySelector('#comparison')).setOpen(true);
+}));
 document.querySelectorAll('[data-model]').forEach(link => link.addEventListener('click', () => {
   document.querySelector('#model').value = link.dataset.model;
   resetForm(); track('select_model', {model:link.dataset.model});
