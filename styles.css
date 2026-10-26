@@ -44,3 +44,15 @@
 /* Keep the shared play/pause control visible and stable in width. */
 .video-actions .video-playback{min-width:98px;justify-content:center}
 .video-playback [data-play-icon]{fill:currentColor;stroke:none}
+
+/* Application gallery: photo frame with matching transport controls below. */
+.application-gallery{min-width:0}
+.application-gallery .application-media{display:block;aspect-ratio:4 / 3;min-height:0;max-height:none;padding:0;overflow:hidden}
+.application-gallery .application-photo{position:absolute;inset:20px 15px 38px;width:calc(100% - 30px);height:calc(100% - 58px);max-height:none;object-fit:contain;opacity:0;transition:opacity .22s ease;pointer-events:none}
+.application-gallery .application-photo.is-current{opacity:1}
+.application-gallery .application-gallery-controls{justify-content:space-between;align-items:center;flex-wrap:nowrap;gap:12px;margin-top:12px}
+.application-gallery-controls .gallery-arrow{justify-content:center;min-width:52px;min-height:44px;background:#fff;color:var(--ink);transition:background .2s}
+.application-gallery-controls .gallery-arrow:hover{background:#e5e5ea}
+.application-gallery-controls .gallery-arrow svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.gallery-count{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+@media(prefers-reduced-motion:reduce){.application-gallery .application-photo,.application-gallery-controls .gallery-arrow{transition:none}}

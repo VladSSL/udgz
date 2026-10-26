@@ -13,8 +13,8 @@
   <meta property="og:image" content="https://udgz-plasma-hardening.mechanic-tea-7150.chatgpt.site/assets/social.jpg">
   <meta property="og:url" content="https://udgz-plasma-hardening.mechanic-tea-7150.chatgpt.site/">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=persistent-playback-20261024">
-  <script src="app.js?v=hide-overview-sound-20261024" defer></script>
+  <link rel="stylesheet" href="styles.css?v=application-gallery-20261026">
+  <script src="app.js?v=application-gallery-20261026" defer></script>
   <!-- Яндекс Метрика: укажите METRIKA_ID в app.js. Счётчик подключается после заполнения ID. -->
 </head>
 <body>
@@ -81,7 +81,20 @@
   <section class="application-section">
     <div class="wrap application reveal">
       <div class="application-copy"><p class="eyebrow muted">От отдельного зуба до большого узла</p><h2>Там, где<br>возникает износ.</h2><p class="body-copy">Упрочняйте рабочие поверхности и увеличивайте межремонтный ресурс деталей.</p><div class="use-list"><span>Зубчатые колёса</span><span>Посадочные места</span><span>Направляющие</span><span>Рельсы и колёса</span></div><a class="text-link" href="#request">Обсудить вашу деталь <span aria-hidden="true">↗</span></a></div>
-      <div class="application-media"><img src="assets/bearing.webp" alt="Пример упрочнения рабочих поверхностей детали плазменной закалкой" width="503" height="378" loading="lazy"><span class="media-note">Пример применения из материалов производителя</span></div>
+      <div class="application-gallery" role="region" aria-label="Примеры применения плазменной закалки">
+        <div class="application-media" id="application-photos">
+          <img class="application-photo is-current" src="assets/bearing.webp" alt="Пример упрочнения рабочих поверхностей детали плазменной закалкой" width="503" height="378" loading="lazy" aria-hidden="false">
+          <img class="application-photo" src="assets/application-gear.webp" alt="Зубчатое колесо с обработанными зубьями" width="500" height="380" loading="lazy" aria-hidden="true">
+          <img class="application-photo" src="assets/application-shaft.webp" alt="Зубчатый вал с обработанными поверхностями" width="500" height="380" loading="lazy" aria-hidden="true">
+          <img class="application-photo" src="assets/application-hardening.webp" alt="Плазменная обработка зубчатого колеса" width="500" height="410" loading="lazy" aria-hidden="true">
+          <span class="media-note">Пример применения из материалов производителя</span>
+        </div>
+        <div class="video-actions application-gallery-controls" role="group" aria-label="Переключение фотографий">
+          <button class="video-pause gallery-arrow" type="button" data-gallery-step="-1" aria-label="Предыдущее фото" aria-controls="application-photos" title="Предыдущее фото"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15 10H5m5-5-5 5 5 5"/></svg></button>
+          <span class="gallery-count" aria-live="polite" aria-atomic="true"><span class="sr-only">Фото </span><span data-gallery-current>1</span><span aria-hidden="true"> / </span><span class="sr-only"> из </span>4</span>
+          <button class="video-pause gallery-arrow" type="button" data-gallery-step="1" aria-label="Следующее фото" aria-controls="application-photos" title="Следующее фото"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10m-5-5 5 5-5 5"/></svg></button>
+        </div>
+      </div>
     </div>
   </section>
 

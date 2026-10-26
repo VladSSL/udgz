@@ -311,3 +311,28 @@ document.querySelector('#copy-request').addEventListener('click', async () => {
 });
 document.querySelector('#year').textContent = new Date().getFullYear();
 // У почтового сценария нет события «заявка отправлена»: факт отправки сайт не получает.
+
+// Manual application photo gallery.
+const applicationGallery = document.querySelector('.application-gallery');
+if (applicationGallery) {
+  const photos = [...applicationGallery.querySelectorAll('.application-photo')];
+  const photoNumber = applicationGallery.querySelector('[data-gallery-current]');
+  let currentPhoto = 0;
+  function changeApplicationPhoto(step) {
+    currentPhoto = (currentPhoto + step + photos.length) % photos.length;
+    photos.forEach((photo, index) => {
+      const current = index === currentPhoto;
+      photo.classList.toggle('is-current', current);
+      photo.setAttribute('aria-hidden', String(!current));
+    });
+    photoNumber.textContent = String(currentPhoto + 1);
+  }
+  applicationGallery.querySelectorAll('[data-gallery-step]').forEach(button => {
+    button.addEventListener('click', () => changeApplicationPhoto(Number(button.dataset.galleryStep)));
+    button.addEventListener('keydown', event => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      event.preventDefault();
+      changeApplicationPhoto(event.key === 'ArrowRight' ? 1 : -1);
+    });
+  });
+}
