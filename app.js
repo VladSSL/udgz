@@ -57,7 +57,7 @@ function updateVideoSound() {
   const enabled = item.muted === false && item.volume > 0;
   const label = enabled ? 'Выключить звук' : 'Включить звук';
   videoSound.hidden = selectedVideo === 'overview' || !item.ready;
-  videoSound.disabled = !!item.soundBusy;
+  videoSound.setAttribute('aria-busy', String(!!item.soundBusy));
   videoSound.setAttribute('aria-pressed', String(enabled));
   videoSound.setAttribute('aria-label', label);
   videoSound.title = label;
@@ -82,20 +82,33 @@ async function toggleVideoSound() {
   const key = selectedVideo;
   const item = kineVideos[key];
   if (!item.player || item.soundBusy) return;
+  const player = item.player;
+  const version = requestVersion;
+  const wasPlaying = !!(item.playing || item.playRequested);
+  const enableSound = item.muted !== false || !(item.volume > 0);
+  const stillCurrent = () => selectedVideo === key && requestVersion === version && !document.hidden;
   item.soundBusy = true;
-  updateVideoSound();
   try {
-    const [muted, volume] = await Promise.all([item.player.isMuted(), item.player.getVolume()]);
-    if (selectedVideo !== key) return;
-    if (!muted && volume > 0) {
-      await item.player.mute();
+    // Send audio commands during the click, without waiting for iframe queries.
+    const commands = [];
+    if (enableSound) {
+      if (!(item.volume > 0)) commands.push(player.setVolume(item.lastAudibleVolume || 1));
+      commands.push(player.unmute());
     } else {
-      if (volume === 0) await item.player.setVolume(item.lastAudibleVolume || 1);
-      await item.player.unmute();
+      commands.push(player.mute());
+    }
+    // Safari may pause an autoplayed video when it is unmuted.
+    // Request continued playback in the same user gesture, without seeking.
+    if (wasPlaying && stillCurrent()) commands.push(player.play());
+    updateVideoSound();
+    await Promise.all(commands);
+    if (wasPlaying && stillCurrent()) {
+      const paused = await player.isPaused();
+      if (paused && stillCurrent()) await player.play();
     }
     await refreshVideoSound(key);
   } catch (_) {
-    if (selectedVideo === key) showVideoStatus('Не удалось переключить звук. Попробуйте ещё раз.');
+    if (stillCurrent()) showVideoStatus('Не удалось переключить звук. Попробуйте ещё раз.');
   } finally {
     item.soundBusy = false;
     if (selectedVideo === key) updateVideoSound();
