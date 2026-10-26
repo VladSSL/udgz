@@ -170,15 +170,57 @@ function loadKinescopeFactory() {
   });
   return factoryPromise;
 }
+// Safari: keep media and custom controls in the same document so taps
+// can authorize both playback and unmuting.
+function createNativeKinescopePlayer(key) {
+  const video = document.createElement('video');
+  const nativeHls = video.canPlayType('application/vnd.apple.mpegurl') &&
+    (/Apple/.test(navigator.vendor || '') || /iPad|iPhone|iPod/.test(navigator.userAgent));
+  if (!nativeHls) return null;
+  const item = kineVideos[key];
+  video.id = item.id + '-native';
+  video.controls = true;
+  video.playsInline = true;
+  video.setAttribute('playsinline', '');
+  video.preload = 'metadata';
+  video.muted = true;
+  video.defaultMuted = true;
+  video.poster = key === 'overview' ? 'assets/process-poster-20261022.jpg' : item.url + '/poster.jpg';
+  video.style.cssText = 'display:block;width:100%;height:100%;object-fit:contain;object-position:center';
+  video.src = item.url + '/master.m3u8';
+  document.getElementById(item.id).hidden = true;
+  item.host.append(video);
+  const adapter = {
+    Events: {VolumeChange:'volumechange', Playing:'playing', Pause:'pause', Ended:'ended', Error:'error'},
+    on(type, listener) {
+      video.addEventListener(type, () => listener({
+        data: type === 'volumechange' ? {muted:video.muted, volume:video.volume} : undefined
+      }));
+      return adapter;
+    },
+    play() { return video.play(); },
+    pause() { video.pause(); return Promise.resolve(); },
+    mute() { video.muted = true; return Promise.resolve(); },
+    unmute() { video.muted = false; return Promise.resolve(); },
+    isMuted() { return Promise.resolve(video.muted); },
+    getVolume() { return Promise.resolve(video.volume); },
+    setVolume(value) { video.volume = value; return Promise.resolve(); },
+    isPaused() { return Promise.resolve(video.paused); },
+    seekTo(time) { video.currentTime = time; return Promise.resolve(); }
+  };
+  return adapter;
+}
 function loadKinescope(key) {
   const item = kineVideos[key];
   if (item.promise) return item.promise;
-  item.promise = loadKinescopeFactory().then(factory => factory.create(item.id, {
+  const nativePlayer = createNativeKinescopePlayer(key);
+  const playerPromise = nativePlayer ? Promise.resolve(nativePlayer) : loadKinescopeFactory().then(factory => factory.create(item.id, {
     url: item.url,
     size: {width:'100%', height:'100%'},
     behavior: {autoPlay:false, muted:true, playsInline:true, localStorage:{time:false}},
     ui: {language:'ru', controls:true, mainPlayButton:true}
-  })).then(player => {
+  }));
+  item.promise = playerPromise.then(player => {
     item.player = player;
     item.muted = true;
     item.volume = 1;
