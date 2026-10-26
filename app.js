@@ -120,7 +120,7 @@ async function toggleVideoSound() {
       const paused = await videoCommand(player.isPaused());
       if (paused && stillCurrent()) await videoCommand(player.play());
     }
-    await refreshVideoSound(key);
+    await videoCommand(refreshVideoSound(key)).catch(() => {});
   } catch (error) {
     if (!stillCurrent()) return;
     if (enableSound && wasPlaying && playbackNeedsGesture(error)) {
@@ -135,7 +135,7 @@ async function toggleVideoSound() {
     } else {
       showVideoStatus('Не удалось переключить звук. Используйте значок динамика внутри видео.');
     }
-    await refreshVideoSound(key);
+    await videoCommand(refreshVideoSound(key)).catch(() => {});
   } finally {
     item.soundBusy = false;
     if (selectedVideo === key) updateVideoSound();
